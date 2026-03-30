@@ -29,6 +29,12 @@ def ensure_data_exists():
         from risk_engine import train_risk_model
         train_risk_model()
 
+    # ✅ ADD THIS BLOCK
+    if not os.path.exists("data/accidents_clean.csv"):
+        from accident_data_generator import generate_accident_data
+        generate_accident_data()
+
+    # Existing hotspot logic
     if not os.path.exists("data/clustered_accidents.csv"):
         from hotspot_detector import (load_accident_data,
                                        run_dbscan,

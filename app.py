@@ -131,13 +131,23 @@ with tab1:
 
     df = pd.read_csv(acc_path)
 
+    # ✅ FIX: safely detect state column
+    state_cols = [c for c in df.columns if "state" in c.lower()]
+    if not state_cols:
+        st.error("No state column found in dataset.")
+        st.stop()
+
+    state_col = state_cols[0]
+
     # ── Top metrics row ──
     col1, col2, col3, col4 = st.columns(4)
+
     with col1:
         st.metric("Total Records", f"{len(df):,}")
+
     with col2:
-        state_col = [c for c in df.columns if "state" in c.lower()][0]
         st.metric("States Covered", df[state_col].nunique())
+
     with col3:
         hotspot_path = "data/hotspot_summary.csv"
         if os.path.exists(hotspot_path):
@@ -145,6 +155,7 @@ with tab1:
             st.metric("Hotspot Clusters", len(hs))
         else:
             st.metric("Hotspot Clusters", "Run detector")
+
     with col4:
         st.metric("Highways Monitored", len(HIGHWAYS))
 
@@ -155,35 +166,54 @@ with tab1:
 
     with col_a:
         st.markdown("#### Top 10 Accident-Prone States")
-        state_counts = (df[state_col]
-                        .value_counts()
-                        .head(10)
-                        .reset_index())
+
+        state_counts = (
+            df[state_col]
+            .value_counts()
+            .head(10)
+            .reset_index()
+        )
         state_counts.columns = ["State", "Accidents"]
+
         fig1 = px.bar(
-            state_counts, x="Accidents", y="State",
-            orientation="h", color="Accidents",
+            state_counts,
+            x="Accidents",
+            y="State",
+            orientation="h",
+            color="Accidents",
             color_continuous_scale="Reds",
             height=350
         )
-        fig1.update_layout(showlegend=False,
-                           margin=dict(l=0, r=0, t=10, b=0))
+
+        fig1.update_layout(
+            showlegend=False,
+            margin=dict(l=0, r=0, t=10, b=0)
+        )
+
         st.plotly_chart(fig1, use_container_width=True)
 
     with col_b:
         st.markdown("#### Accident Distribution by State")
+
         fig2 = px.pie(
-            state_counts, values="Accidents", names="State",
+            state_counts,
+            values="Accidents",
+            names="State",
             color_discrete_sequence=px.colors.sequential.RdBu,
             height=350
         )
-        fig2.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+
+        fig2.update_layout(
+            margin=dict(l=0, r=0, t=10, b=0)
+        )
+
         st.plotly_chart(fig2, use_container_width=True)
 
     st.divider()
 
     # ── Charts row 2 — IoT data ──
     st.markdown("#### Live IoT Sensor Data — Highway Traffic")
+
     iot_path = "data/merged_data.csv"
     if os.path.exists(iot_path):
         iot_df = pd.read_csv(iot_path)
@@ -192,38 +222,57 @@ with tab1:
 
         with col_c:
             st.markdown("*Speed vs Traffic Density*")
+
             fig3 = px.scatter(
-                iot_df, x="speed_kmh", y="density_veh",
+                iot_df,
+                x="speed_kmh",
+                y="density_veh",
                 color="incident_flag",
                 hover_data=["highway", "condition"],
                 color_continuous_scale=["green", "red"],
                 height=300,
-                labels={"speed_kmh": "Speed (km/h)",
-                        "density_veh": "Vehicles/km",
-                        "incident_flag": "Incident"}
+                labels={
+                    "speed_kmh": "Speed (km/h)",
+                    "density_veh": "Vehicles/km",
+                    "incident_flag": "Incident"
+                }
             )
-            fig3.update_layout(margin=dict(l=0, r=0, t=10, b=0))
+
+            fig3.update_layout(
+                margin=dict(l=0, r=0, t=10, b=0)
+            )
+
             st.plotly_chart(fig3, use_container_width=True)
 
         with col_d:
             st.markdown("*Weather Conditions Across Highways*")
-            weather_counts = (iot_df["condition"]
-                              .value_counts()
-                              .reset_index())
+
+            weather_counts = (
+                iot_df["condition"]
+                .value_counts()
+                .reset_index()
+            )
             weather_counts.columns = ["Condition", "Count"]
+
             fig4 = px.bar(
-                weather_counts, x="Condition", y="Count",
-                color="Condition", height=300,
+                weather_counts,
+                x="Condition",
+                y="Count",
+                color="Condition",
+                height=300,
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
-            fig4.update_layout(showlegend=False,
-                               margin=dict(l=0, r=0, t=10, b=0))
+
+            fig4.update_layout(
+                showlegend=False,
+                margin=dict(l=0, r=0, t=10, b=0)
+            )
+
             st.plotly_chart(fig4, use_container_width=True)
 
     # ── Raw data toggle ──
     with st.expander("View Raw Accident Data"):
         st.dataframe(df.head(100), use_container_width=True)
-
 
 # ════════════════════════════════════════════════════════════════════════
 # TAB 2 — LIVE HOTSPOT MAP

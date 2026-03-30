@@ -1,4 +1,3 @@
-# Auto-generate data if files don't exist (for cloud deployment)
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -13,8 +12,8 @@ from alert_engine     import generate_alert
 from map_builder      import build_live_risk_map
 from hotspot_detector import load_accident_data
 
-import os
 
+# Auto-generate data if files don't exist (for cloud deployment)
 def ensure_data_exists():
     os.makedirs("data",   exist_ok=True)
     os.makedirs("models", exist_ok=True)
@@ -31,18 +30,10 @@ def ensure_data_exists():
         from risk_engine import train_risk_model
         train_risk_model()
 
-    # ✅ Generate accident data if missing
-    if not os.path.exists("data/accidents_clean.csv"):
-        from accident_data_generator import generate_accident_data
-        generate_accident_data()
-
-    # ✅ Hotspot generation
     if not os.path.exists("data/clustered_accidents.csv"):
-        from hotspot_detector import (
-            load_accident_data,
-            run_dbscan,
-            get_hotspot_summary
-        )
+        from hotspot_detector import (load_accident_data,
+                                       run_dbscan,
+                                       get_hotspot_summary)
         df = load_accident_data()
         df = run_dbscan(df)
         get_hotspot_summary(df)
@@ -52,7 +43,6 @@ def ensure_data_exists():
         build_live_risk_map()
 
 ensure_data_exists()
-
 
 # ── Page config ──────────────────────────────────────────────────────────
 st.set_page_config(
@@ -108,11 +98,11 @@ with st.sidebar:
     st.markdown("### RoadSense India")
     st.markdown("AI-powered road safety platform for Indian highways.")
     st.divider()
-    st.markdown("**Monitored Highways**")
+    st.markdown("*Monitored Highways*")
     for hw in HIGHWAYS:
         st.markdown(f"- {hw}")
     st.divider()
-    st.markdown("**Data Sources**")
+    st.markdown("*Data Sources*")
     st.markdown("- data.gov.in (Govt of India)")
     st.markdown("- Open-Meteo Weather API")
     st.markdown("- IoT Traffic Simulation")
@@ -122,9 +112,9 @@ with st.sidebar:
 
 # ── Tabs ─────────────────────────────────────────────────────────────────
 tab1, tab2, tab3 = st.tabs([
-    "EDA & Insights",
-    "Live Hotspot Map",
-    "Route Risk Checker"
+    "📊 EDA & Insights",
+    "🗺️ Live Hotspot Map",
+    "🤖 Route Risk Checker"
 ])
 
 # ════════════════════════════════════════════════════════════════════════
@@ -146,25 +136,7 @@ with tab1:
     with col1:
         st.metric("Total Records", f"{len(df):,}")
     with col2:
-        # Try to detect state column safely
-        state_candidates = [c for c in df.columns if "state" in c.lower()]
-
-        if len(state_candidates) > 0:
-            state_col = state_candidates[0]
-        else:
-          # fallback options
-          possible_cols = ["State", "STATE", "state_name", "region", "location"]
-
-    state_col = None
-    for col in possible_cols:
-        if col in df.columns:
-            state_col = col
-            break
-
-    if state_col is None:
-        st.error("❌ No state column found in dataset!")
-        st.write("Available columns:", df.columns.tolist())
-        st.stop()
+        state_col = [c for c in df.columns if "state" in c.lower()][0]
         st.metric("States Covered", df[state_col].nunique())
     with col3:
         hotspot_path = "data/hotspot_summary.csv"
@@ -219,7 +191,7 @@ with tab1:
         col_c, col_d = st.columns(2)
 
         with col_c:
-            st.markdown("**Speed vs Traffic Density**")
+            st.markdown("*Speed vs Traffic Density*")
             fig3 = px.scatter(
                 iot_df, x="speed_kmh", y="density_veh",
                 color="incident_flag",
@@ -234,7 +206,7 @@ with tab1:
             st.plotly_chart(fig3, use_container_width=True)
 
         with col_d:
-            st.markdown("**Weather Conditions Across Highways**")
+            st.markdown("*Weather Conditions Across Highways*")
             weather_counts = (iot_df["condition"]
                               .value_counts()
                               .reset_index())
@@ -251,7 +223,8 @@ with tab1:
     # ── Raw data toggle ──
     with st.expander("View Raw Accident Data"):
         st.dataframe(df.head(100), use_container_width=True)
-        
+
+
 # ════════════════════════════════════════════════════════════════════════
 # TAB 2 — LIVE HOTSPOT MAP
 # ════════════════════════════════════════════════════════════════════════
@@ -380,6 +353,8 @@ with tab2:
     st_folium(india_map, width=None, height=520,
               use_container_width=True)
     
+
+
 # ════════════════════════════════════════════════════════════════════════
 # TAB 3 — ROUTE RISK CHECKER
 # ════════════════════════════════════════════════════════════════════════
@@ -458,14 +433,14 @@ with tab3:
             alert = generate_alert(selected_hw)
 
         # English alert
-        st.markdown("**English Advisory**")
+        st.markdown("*English Advisory*")
         st.markdown(
             f"<div class='alert-box'>{alert['english_alert']}</div>",
             unsafe_allow_html=True
         )
 
         # Hindi alert
-        st.markdown("**हिंदी सलाह (Hindi Advisory)**")
+        st.markdown("*हिंदी सलाह (Hindi Advisory)*")
         st.markdown(
             f"<div class='alert-box hindi-text'>"
             f"{alert['hindi_alert']}</div>",
@@ -500,4 +475,4 @@ with tab3:
             margin=dict(l=0, r=0, t=20, b=0),
             showlegend=True
         )
-        st.plotly_chart(fig, use_container_width=True, key="final_chart")
+        st.plotly_chart(fig, use_container_width=True)

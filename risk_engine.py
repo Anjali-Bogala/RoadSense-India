@@ -63,9 +63,13 @@ def get_risk_score(highway: str) -> dict:
     incident = iot["incident_flag"]
 
     # Live weather
-    weather  = get_weather(highway)
-    rain     = weather["rain_flag"]
-    fog      = weather["fog_flag"]
+    weather = get_weather(highway)
+
+    # Convert weather into model features
+    rain = 1 if weather.get("rain_mm", 0) > 0 else 0
+
+    # Simple fog logic based on visibility
+    fog = 1 if weather.get("visibility_m", 10000) < 2000 else 0
 
     # Predict
     X        = np.array([[speed, density, rain, fog, incident]])

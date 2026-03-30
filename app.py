@@ -13,6 +13,8 @@ from alert_engine     import generate_alert
 from map_builder      import build_live_risk_map
 from hotspot_detector import load_accident_data
 
+import os
+
 def ensure_data_exists():
     os.makedirs("data",   exist_ok=True)
     os.makedirs("models", exist_ok=True)
@@ -29,16 +31,18 @@ def ensure_data_exists():
         from risk_engine import train_risk_model
         train_risk_model()
 
-    # ✅ ADD THIS BLOCK
+    # ✅ Generate accident data if missing
     if not os.path.exists("data/accidents_clean.csv"):
         from accident_data_generator import generate_accident_data
         generate_accident_data()
 
-    # Existing hotspot logic
+    # ✅ Hotspot generation
     if not os.path.exists("data/clustered_accidents.csv"):
-        from hotspot_detector import (load_accident_data,
-                                       run_dbscan,
-                                       get_hotspot_summary)
+        from hotspot_detector import (
+            load_accident_data,
+            run_dbscan,
+            get_hotspot_summary
+        )
         df = load_accident_data()
         df = run_dbscan(df)
         get_hotspot_summary(df)
@@ -142,7 +146,25 @@ with tab1:
     with col1:
         st.metric("Total Records", f"{len(df):,}")
     with col2:
-        state_col = [c for c in df.columns if "state" in c.lower()][0]
+        # Try to detect state column safely
+        state_candidates = [c for c in df.columns if "state" in c.lower()]
+
+        if len(state_candidates) > 0:
+            state_col = state_candidates[0]
+        else:
+          # fallback options
+          possible_cols = ["State", "STATE", "state_name", "region", "location"]
+
+    state_col = None
+    for col in possible_cols:
+        if col in df.columns:
+            state_col = col
+            break
+
+    if state_col is None:
+        st.error("❌ No state column found in dataset!")
+        st.write("Available columns:", df.columns.tolist())
+        st.stop()
         st.metric("States Covered", df[state_col].nunique())
     with col3:
         hotspot_path = "data/hotspot_summary.csv"
@@ -478,4 +500,4 @@ with tab3:
             margin=dict(l=0, r=0, t=20, b=0),
             showlegend=True
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="final_chart")
